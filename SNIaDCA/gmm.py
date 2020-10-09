@@ -4,9 +4,8 @@ from numpy.lib.recfunctions import repack_fields
 
 import os
 
-
-__model_path = os.path.join(os.path.dirname(__file__), 'models/')
-
+__sep = os.path.sep
+__model_path = os.path.join(os.path.dirname(__file__), f'models{__sep}')
 
 _dt = [('m', np.float64), ('v', np.float64),
        ('p5', np.float64), ('p6', np.float64)]

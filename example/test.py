@@ -1,5 +1,5 @@
 import numpy as np
-from SnIaDCA import gmm
+from SNIaDCA import gmm
 
 
 m = np.array([-19.4, -19.55, -19.4, -18.5])
