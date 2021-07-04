@@ -56,10 +56,10 @@ class gmm:
     """
 
     def __init__(self, p5=None, p6=None, m=None, v=None):
-        self.p5 = p5
-        self.p6 = p6
-        self.m = m
-        self.v = v
+        self.p5 = np.asarray(p5).reshape(-1)
+        self.p6 = np.asarray(p6).reshape(-1)
+        self.m = np.asarray(m).reshape(-1)
+        self.v = np.asarray(v).reshape(-1)
 
     def predict_group(self, model=None):
         """Predict group membership at given points.
