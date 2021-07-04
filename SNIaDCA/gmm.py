@@ -88,6 +88,14 @@ class gmm:
 
         return prob
 
+    def get_group_name(self, probability):
+        arg_to_name = ('Core-normal', 'Shallow-silicon', 'Broad-line', 'Cool')
+
+        max_ind = np.argmax(probability)
+        name = arg_to_name[max_ind]
+        print(f'Most likely group: '
+              f'{name} ({probability[max_ind] * 100.:.2f}%)')
+
     def _default_model(self):
         """Detect which model to use based on given inputs.
 
