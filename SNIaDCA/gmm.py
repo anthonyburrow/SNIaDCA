@@ -1,75 +1,66 @@
 import numpy as np
 import pickle
 from numpy.lib.recfunctions import repack_fields
-
 import os
 
-__sep = os.path.sep
-__model_path = os.path.join(os.path.dirname(__file__), f'models{__sep}')
+from .data.pins import branch_pins, polin_pins
 
-_dt = [('m', np.float64), ('v', np.float64),
-       ('p5', np.float64), ('p6', np.float64)]
-
-# Order: core_normal, shallow_si, broad_line, cool
-_branch_pins = np.array(
-    [(-19.35, 11.8, 23, 105), (-19.55, 10.5, 10, 62),
-     (-19.4, 14, 15, 149), (-18.5, 11.25, 53, 125)],
-    dtype=_dt)
-
-# Order: main, fast, dim
-_polin_pins = np.array(
-    [(-19.5, 11.3, 16, 90), (-19.2, 14, 15, 150), (-18.6, 10.7, 55, 125)],
-    dtype=_dt)
+_sep = os.path.sep
+_model_path = os.path.join(os.path.dirname(__file__), f'models{_sep}')
 
 
-_models = {
-    'm_v': {'fields': ['v', 'm'], 'n_components': 3},
-    'p5_p6': {'fields': ['p6', 'p5'], 'n_components': 4},
-    'm_v_p5': {'fields': ['v', 'm', 'p5'], 'n_components': 3},
-    'v_p5_p6': {'fields': ['v', 'p5', 'p6'], 'n_components': 4},
-    'm_p5_p6': {'fields': ['m', 'p5', 'p6'], 'n_components': 4},
-    'm_v_p5_p6': {'fields': ['v', 'm', 'p6', 'p5'], 'n_components': 4},
+_model_dict = {
+    'p5_p6': {'fields': ['p6', 'p5'],
+              'n_components': 4},
+    'v_p5_p6': {'fields': ['v', 'p5', 'p6'],
+                'n_components': 4},
+    'm_p5_p6': {'fields': ['m', 'p5', 'p6'],
+                'n_components': 4},
+    'm_v_p5_p6': {'fields': ['v', 'm', 'p6', 'p5'],
+                  'n_components': 4},
+    'm_v': {'fields': ['v', 'm'],
+            'n_components': 3},
+    'm_v_p5': {'fields': ['v', 'm', 'p5'],
+               'n_components': 3}
 }
 
 
-def get_gmm(model):
-    """Load the pickled GMM."""
-    fn = os.path.join(__model_path, f'{model}.p')
-    with open(fn, 'rb') as F:
-        gmm = pickle.load(F)
-    return gmm
+# TODO: Setup single data attribute for all given properties, and in
+#       `_get_ordered_input()`, return specific views, so that numerous copies
+#       are not created.
+# TODO: Test np.float64 on the structured array workaround.
+# TODO: Clean up examples.
 
 
-class gmm:
+class GMM:
     """GMM object used for group membership prediction.
 
     Attributes
     ----------
-    p5 : numpy.ndarray, shape (N, )
+    pew_5972 : numpy.ndarray, shape (N, )
         Si II 5972 pEW.
-    p6 : numpy.ndarray, shape (N, )
+    pew_6355 : numpy.ndarray, shape (N, )
         Si II 6355 pEW.
-    m : numpy.ndarray, shape (N, )
-        Maximum B magnitude.
-    v : numpy.ndarray, shape (N, )
+    M_B : numpy.ndarray, shape (N, )
+        Maximum absolute B magnitude.
+    vsi : numpy.ndarray, shape (N, )
         Si II 6355 velocity.
     """
 
-    def __init__(self, p5=None, p6=None, m=None, v=None):
-        self.p5 = np.asarray(p5).reshape(-1)
-        self.p6 = np.asarray(p6).reshape(-1)
-        self.m = np.asarray(m).reshape(-1)
-        self.v = np.asarray(v).reshape(-1)
+    def __init__(self, pew_5972=None, pew_6355=None, M_B=None, vsi=None):
+        self.pew_5972 = None if pew_5972 is None else np.asarray(pew_5972)
+        self.pew_6355 = None if pew_6355 is None else np.asarray(pew_6355)
+        self.M_B = None if M_B is None else np.asarray(M_B)
+        self.vsi = None if vsi is None else np.asarray(vsi)
 
-    def predict_group(self, model=None):
+    def predict(self, model=None):
         """Predict group membership at given points.
 
         Parameters
         ----------
-        pred_data : numpy.ndarray, shape (N, n_dims)
-            Sample at which to predict.
         model : str
-            Model used for prediction.
+            Model used for prediction. If none is given, a default model is
+            chosen.
 
         Returns
         -------
@@ -81,8 +72,8 @@ class gmm:
         if model is None:
             model = self._default_model()
 
-        # predict at `pred_data` and reorder
-        gmm = get_gmm(model)
+        # Predict at given data with a certain model and then reorder
+        gmm = self._load_model(model)
         prob = self._predict(model, gmm)
         prob = self._reorder_prob(prob, model, gmm)
 
@@ -91,10 +82,13 @@ class gmm:
     def get_group_name(self, probability):
         arg_to_name = ('Core-normal', 'Shallow-silicon', 'Broad-line', 'Cool')
 
+        print(probability)
         max_ind = np.argmax(probability)
         name = arg_to_name[max_ind]
         print(f'Most likely group: '
               f'{name} ({probability[max_ind] * 100.:.2f}%)')
+
+        return name, probability[max_ind]
 
     def _default_model(self):
         """Detect which model to use based on given inputs.
@@ -104,10 +98,10 @@ class gmm:
         model : str
             Model used for prediction.
         """
-        is_p5 = self.p5 is not None
-        is_p6 = self.p6 is not None
-        is_m = self.m is not None
-        is_v = self.v is not None
+        is_p5 = self.pew_5972 is not None
+        is_p6 = self.pew_6355 is not None
+        is_m = self.M_B is not None
+        is_v = self.vsi is not None
 
         if is_p5 and is_p6:
             if not is_m and is_v:
@@ -124,16 +118,20 @@ class gmm:
             else:
                 model = 'm_v'
         else:
-            m = ('Could not determine which model to use; specify model in '
-                 '`predict_branch()` argument')
-            print(m)
-            return
+            raise RuntimeError('Could not determine which model to use.')
 
         print(f'Predicting with model {model}')
         return model
 
+    def _load_model(self, model):
+        """Load the pickled GMM."""
+        fn = os.path.join(_model_path, f'{model}.p')
+        with open(fn, 'rb') as file:
+            gmm = pickle.load(file)
+        return gmm
+
     def _predict(self, model, gmm):
-        """Predict at input points.
+        """Predict at input points using the given GMM object.
 
         Parameters
         ----------
@@ -151,25 +149,13 @@ class gmm:
 
         prob = gmm.predict_proba(pred_data)
 
-        """
-        # FYI: For structured arrays, use instead something like:
-
-        fields = _models[model]['fields']
-        try:
-            arr = pred_data[fields].copy().view((float, len(fields)))
-            prob = gmm.predict_proba(arr)
-        except ValueError:
-            arr = repack_fields(pred_data[fields]).view((float, len(fields)))
-            prob = gmm.predict_proba(arr)
-        """
-
         return prob
 
     def _get_ordered_input(self, model):
-        """Get `pred_data` array.
+        """Get array suitable for input for the GMM objects.
 
-        `pred_data` needs to match the order of the respective GMM, and I kept
-        changing the order of GMM parameters, so I just did a case-by-case...
+        This unfortunately must be done case-by-case because the GMM objects
+        were generated with different ordering of the parameters involved.
 
         Parameters
         ----------
@@ -182,17 +168,17 @@ class gmm:
             Ordered input data fit to pass into `gmm.predict_proba()`.
         """
         if model == 'm_v':
-            pred_data = np.array((self.v, self.m)).T
+            pred_data = np.array((self.vsi, self.M_B)).T
         elif model == 'p5_p6':
-            pred_data = np.array((self.p6, self.p5)).T
+            pred_data = np.array((self.pew_6355, self.pew_5972)).T
         elif model == 'm_v_p5':
-            pred_data = np.array((self.v, self.m, self.p5)).T
+            pred_data = np.array((self.vsi, self.M_B, self.pew_5972)).T
         elif model == 'v_p5_p6':
-            pred_data = np.array((self.v, self.p5, self.p6)).T
+            pred_data = np.array((self.vsi, self.pew_5972, self.pew_6355)).T
         elif model == 'm_p5_p6':
-            pred_data = np.array((self.m, self.p5, self.p6)).T
+            pred_data = np.array((self.M_B, self.pew_5972, self.pew_6355)).T
         elif model == 'm_v_p5_p6':
-            pred_data = np.array((self.v, self.m, self.p6, self.p5)).T
+            pred_data = np.array((self.vsi, self.M_B, self.pew_6355, self.pew_5972)).T
 
         return pred_data
 
@@ -210,19 +196,19 @@ class gmm:
 
         Returns
         -------
-        gmm_p : numpy.ndarray, shape (N, n_components)
+        prob : numpy.ndarray, shape (N, n_components)
             Unsorted probabilities output by GMM prediction.
         """
-        n_components = _models[model]['n_components']
+        n_components = _model_dict[model]['n_components']
         if n_components == 3:
-            pins = _polin_pins
+            pins = polin_pins
         elif n_components == 4:
-            pins = _branch_pins
+            pins = branch_pins
 
-        fields = _models[model]['fields']
+        fields = _model_dict[model]['fields']
         pin_data = pins[fields]
 
-        #  sklearn.gmm can't take in structured arrays, so a workaround...
+        #  sklearn.gmm can't take in structured arrays, so as a workaround...
         try:
             arr = pin_data[fields].copy().view((float, len(fields)))
             pin_prob = gmm.predict_proba(arr)
@@ -232,7 +218,7 @@ class gmm:
 
         ordered_indices = [np.argmax(p) for p in pin_prob]
 
-        # check for duplicates
+        # Check for duplicates
         if len(set(ordered_indices)) != n_components:
             print(f'{model} probabilities were not reordered')
             return prob

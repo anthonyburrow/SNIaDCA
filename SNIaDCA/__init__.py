@@ -1,1 +1,1 @@
-from .gmm import get_gmm, gmm
+from .gmm import GMM
