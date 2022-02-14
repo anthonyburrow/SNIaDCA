@@ -29,7 +29,6 @@ _model_dict = {
 #       `_get_ordered_input()`, return specific views, so that numerous copies
 #       are not created.
 # TODO: Test np.float64 on the structured array workaround.
-# TODO: Clean up examples.
 
 
 class GMM:
@@ -60,7 +59,7 @@ class GMM:
         ----------
         model : str
             Model used for prediction. If none is given, a default model is
-            chosen.
+            chosen. See `_model_dict` above for available model keys.
 
         Returns
         -------
@@ -82,11 +81,8 @@ class GMM:
     def get_group_name(self, probability):
         arg_to_name = ('Core-normal', 'Shallow-silicon', 'Broad-line', 'Cool')
 
-        print(probability)
         max_ind = np.argmax(probability)
         name = arg_to_name[max_ind]
-        print(f'Most likely group: '
-              f'{name} ({probability[max_ind] * 100.:.2f}%)')
 
         return name, probability[max_ind]
 
