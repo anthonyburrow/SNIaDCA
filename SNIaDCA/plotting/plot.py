@@ -22,14 +22,7 @@ def generate_plot(gmm, contours=False):
     # Get GMM information from CSP, Zheng source data
     source_data = read_source_data(f'{_data_path}csp_zheng.dat')
 
-    source_gmm = SNIaDCA.gmm.GMM(pew_5972=source_data['p5800'],
-                                 pew_5972_err=source_data['p5800_err'],
-                                 pew_6355=source_data['p6150'],
-                                 pew_6355_err=source_data['p6150_err'],
-                                 M_B=source_data['mag'],
-                                 M_B_err=source_data['mag_err'],
-                                 vsi=source_data['v6150'],
-                                 vsi_err=source_data['v6150_err'],
+    source_gmm = SNIaDCA.gmm.GMM(data=source_data,
                                  model=gmm.model)
 
     # Create plot from CSP, Zheng source data
@@ -54,10 +47,10 @@ def generate_plot(gmm, contours=False):
 
 def read_source_data(filename):
     dt = [('name', 'U8'),
-          ('mag', np.float64), ('mag_err', np.float64),
-          ('v6150', np.float64), ('v6150_err', np.float64),
-          ('p5800', np.float64), ('p5800_err', np.float64),
-          ('p6150', np.float64), ('p6150_err', np.float64)]
+          ('M_B', np.float64), ('M_B_err', np.float64),
+          ('vsi', np.float64), ('vsi_err', np.float64),
+          ('pew_5972', np.float64), ('pew_5972_err', np.float64),
+          ('pew_6355', np.float64), ('pew_6355_err', np.float64)]
     data = np.loadtxt(filename, skiprows=1, dtype=dt)
 
     return data

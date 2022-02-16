@@ -31,7 +31,6 @@ _model_dict = {
 # TODO: Setup single data attribute for all given properties, and in
 #       `_get_ordered_input()`, return specific views, so that numerous copies
 #       are not created.
-# TODO: Allow single array input?
 # TODO: Allow more control of plot parameters via args, kwargs
 
 
@@ -50,18 +49,11 @@ class GMM:
         Si II 6355 velocity.
     """
 
-    def __init__(self, pew_5972=None, pew_5972_err=None, pew_6355=None,
-                 pew_6355_err=None, M_B=None, M_B_err=None, vsi=None,
-                 vsi_err=None, model=None):
-        self.pew_5972 = np.array(pew_5972) if pew_5972 is not None else None
-        self.pew_6355 = np.array(pew_6355) if pew_6355 is not None else None
-        self.M_B = np.array(M_B) if M_B is not None else None
-        self.vsi = np.array(vsi) if vsi is not None else None
-
-        self.pew_5972_err = np.array(pew_5972_err) if pew_5972_err is not None else None
-        self.pew_6355_err = np.array(pew_6355_err) if pew_6355_err is not None else None
-        self.M_B_err = np.array(M_B_err) if M_B_err is not None else None
-        self.vsi_err = np.array(vsi_err) if vsi_err is not None else None
+    def __init__(self, data=None, model=None, *args, **kwargs):
+        if data is not None:
+            self._data = data
+        else:
+            self._set_vars_individual(**kwargs)
 
         self._model = model
         self._n_components = None
@@ -131,6 +123,51 @@ class GMM:
             self._n_components = _model_dict[self.model]['n_components']
 
         return self._n_components
+
+    @property
+    def pew_5972(self):
+        return self._data['pew_5972']
+
+    @property
+    def pew_5972_err(self):
+        return self._data['pew_5972_err']
+
+    @property
+    def pew_6355(self):
+        return self._data['pew_6355']
+
+    @property
+    def pew_6355_err(self):
+        return self._data['pew_6355_err']
+
+    @property
+    def M_B(self):
+        return self._data['M_B']
+
+    @property
+    def M_B_err(self):
+        return self._data['M_B_err']
+
+    @property
+    def vsi(self):
+        return self._data['vsi']
+
+    @property
+    def vsi_err(self):
+        return self._data['vsi_err']
+
+    def _set_vars_individual(self, **kwargs):
+        self._data = {}
+
+        property_fields = ('M_B', 'M_B_err',
+                           'vsi', 'vsi_err',
+                           'pew_5972', 'pew_5972_err',
+                           'pew_6355', 'pew_6355_err')
+        for field in property_fields:
+            if field not in kwargs:
+                self._data[field] = None
+                continue
+            self._data[field] = np.array(kwargs[field])
 
     def _default_model(self):
         """Detect which model to use based on given inputs.
