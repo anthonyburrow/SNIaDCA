@@ -133,37 +133,14 @@ class GMM:
 
         return self._n_components
 
-    @property
-    def pew_5972(self):
-        return self._data['pew_5972']
-
-    @property
-    def pew_5972_err(self):
-        return self._data['pew_5972_err']
-
-    @property
-    def pew_6355(self):
-        return self._data['pew_6355']
-
-    @property
-    def pew_6355_err(self):
-        return self._data['pew_6355_err']
-
-    @property
-    def M_B(self):
-        return self._data['M_B']
-
-    @property
-    def M_B_err(self):
-        return self._data['M_B_err']
-
-    @property
-    def vsi(self):
-        return self._data['vsi']
-
-    @property
-    def vsi_err(self):
-        return self._data['vsi_err']
+    def __getattr__(self, name):
+        try:
+            if name not in _property_fields:
+                raise KeyError
+            return self._data[name]
+        except KeyError:
+            msg = f"'{type(self).__name__}' object has no attribute '{name}'"
+            raise AttributeError(msg) from None
 
     def _default_model(self):
         """Detect which model to use based on given inputs.
