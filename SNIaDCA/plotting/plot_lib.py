@@ -64,7 +64,7 @@ def plot_polin(fig, ax, gmm, contours=False):
         gmm_model = gmm.load_model()
         draw_contours(ax, gmm_model, (0, 30), (-22, -16))
 
-    prob = gmm.predict()
+    prob = gmm.predict(verbose=False)
     c = GMM_P_to_RGB(prob)
     m = GMM_P_to_MARKER(prob)
     multi_scatter(ax, gmm.vsi, gmm.M_B, c, m)
@@ -97,7 +97,7 @@ def plot_branch(fig, ax, gmm, contours=False):
         draw_contours(ax, gmm_model, (-30, 250), (-30, 130),
                       which=_which_map[gmm.model])
 
-    prob = gmm.predict()
+    prob = gmm.predict(verbose=False)
     c = GMM_P_to_RGB(prob)
     m = GMM_P_to_MARKER(prob)
     multi_scatter(ax, gmm.pew_6355, gmm.pew_5972, c, m)

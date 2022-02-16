@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.lib.recfunctions import repack_fields
 import pickle
+import warnings
 import os
 
 from .data.pins import branch_pins, polin_pins
@@ -67,7 +68,7 @@ class GMM:
         self._model = model
         self._n_components = None
 
-    def predict(self, model=None):
+    def predict(self, model=None, verbose=True):
         """Predict group membership at given points.
 
         Parameters
@@ -86,7 +87,8 @@ class GMM:
         if model is None:
             model = self.model
 
-        print(f'Predicting with model {model}')
+        if verbose:
+            print(f'Predicting with model {model}')
 
         # Predict at given data with a certain model and then reorder
         gmm = self.load_model(model)
@@ -112,8 +114,10 @@ class GMM:
             model = self.model
 
         fn = os.path.join(_model_path, f'{self.model}.p')
-        with open(fn, 'rb') as file:
+        with open(fn, 'rb') as file, warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=UserWarning)
             gmm = pickle.load(file)
+
         return gmm
 
     @property

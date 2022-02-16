@@ -13,6 +13,8 @@ _data_path = os.path.join(os.path.dirname(__file__), f'..{_sep}data{_sep}')
 
 
 def generate_plot(gmm, contours=False):
+    print('Generating plot...')
+
     # Setup plot
     setup_plot_params()
     fig, ax = plt.subplots()
@@ -31,7 +33,7 @@ def generate_plot(gmm, contours=False):
                                  model=gmm.model)
 
     # Create plot from CSP, Zheng source data
-    prob = gmm.predict()
+    prob = gmm.predict(verbose=False)
     point_props = {
         'color': GMM_P_to_RGB(prob),
         'marker': '*',
