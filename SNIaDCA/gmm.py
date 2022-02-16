@@ -31,10 +31,8 @@ _model_dict = {
 # TODO: Setup single data attribute for all given properties, and in
 #       `_get_ordered_input()`, return specific views, so that numerous copies
 #       are not created.
-# TODO: Test np.float64 on the structured array workaround.
 # TODO: Allow single array input?
 # TODO: Allow more control of plot parameters via args, kwargs
-# TODO: Get rid of pickle warning
 
 
 class GMM:
@@ -245,7 +243,7 @@ class GMM:
 
         # sklearn.gmm can't take in structured arrays, so this converts
         # to a normal unstructured array
-        arr = repack_fields(pin_data).view((float, len(fields)))
+        arr = repack_fields(pin_data).view((np.float64, len(fields)))
         pin_prob = gmm.predict_proba(arr)
 
         ordered_indices = [np.argmax(p) for p in pin_prob]
