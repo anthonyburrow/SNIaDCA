@@ -27,6 +27,10 @@ _model_dict = {
                'n_components': 3}
 }
 
+_property_fields = ('M_B', 'M_B_err',
+                    'vsi', 'vsi_err',
+                    'pew_5972', 'pew_5972_err',
+                    'pew_6355', 'pew_6355_err')
 
 # TODO: Setup single data attribute for all given properties, and in
 #       `_get_ordered_input()`, return specific views, so that numerous copies
@@ -39,21 +43,26 @@ class GMM:
 
     Attributes
     ----------
-    pew_5972 : numpy.ndarray, shape (N, )
-        Si II 5972 pEW.
-    pew_6355 : numpy.ndarray, shape (N, )
-        Si II 6355 pEW.
-    M_B : numpy.ndarray, shape (N, )
-        Maximum absolute B magnitude.
-    vsi : numpy.ndarray, shape (N, )
-        Si II 6355 velocity.
+    data : dict
+        Structured array or dictionary (anything with keys) corresponding to
+        observables. See `_property_fields` above for allowed keys. These
+        key/value pairs may also be given as kwargs instead of a single
+        structured array/dict.
+    model : str
+        Model used for prediction. If none is given, a default model is
+        chosen. See `_model_dict` above for available model keys.
     """
 
     def __init__(self, data=None, model=None, *args, **kwargs):
         if data is not None:
             self._data = data
         else:
-            self._set_vars_individual(**kwargs)
+            self._data = {}
+            for field in _property_fields:
+                if field not in kwargs:
+                    self._data[field] = None
+                    continue
+                self._data[field] = np.array(kwargs[field])
 
         self._model = model
         self._n_components = None
@@ -155,19 +164,6 @@ class GMM:
     @property
     def vsi_err(self):
         return self._data['vsi_err']
-
-    def _set_vars_individual(self, **kwargs):
-        self._data = {}
-
-        property_fields = ('M_B', 'M_B_err',
-                           'vsi', 'vsi_err',
-                           'pew_5972', 'pew_5972_err',
-                           'pew_6355', 'pew_6355_err')
-        for field in property_fields:
-            if field not in kwargs:
-                self._data[field] = None
-                continue
-            self._data[field] = np.array(kwargs[field])
 
     def _default_model(self):
         """Detect which model to use based on given inputs.
