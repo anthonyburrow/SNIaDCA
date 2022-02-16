@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import os
 
 from .setup import setup_plot_params
-from .plot_lib import plot_branch
+from .plot_lib import plot_branch, plot_polin, multi_scatter
+from .plot_color_mapping import GMM_P_to_RGB, GMM_P_to_MARKER
 import SNIaDCA.gmm
 
 
@@ -30,16 +31,21 @@ def generate_plot(gmm, contours=False):
                                  model=gmm.model)
 
     # Create plot from CSP, Zheng source data
-    gmm_model = None
-    if contours:
-        gmm_model = source_gmm.load_model()
+    prob = gmm.predict()
+    point_props = {
+        'color': GMM_P_to_RGB(prob),
+        'marker': '*',
+        's': 150.,
+        'edgecolor': 'k',
+        'lw': 0.8
+    }
 
-    fig, ax = plot_branch(fig, ax, source_gmm, contours=contours,
-                          gmm_model=gmm_model)
-
-    # Add new points from input gmm
-    ax.scatter(gmm.pew_6355, gmm.pew_5972, color='c', marker='*',
-               s=100, edgecolor='k', linewidths=0.8)
+    if gmm.n_components == 4:
+        fig, ax = plot_branch(fig, ax, source_gmm, contours=contours)
+        ax.scatter(gmm.pew_6355, gmm.pew_5972, **point_props)
+    elif gmm.n_components == 3:
+        fig, ax = plot_polin(fig, ax, source_gmm, contours=contours)
+        ax.scatter(gmm.vsi, gmm.M_B, **point_props)
 
     return fig, ax
 

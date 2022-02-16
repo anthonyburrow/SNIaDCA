@@ -34,7 +34,6 @@ _model_dict = {
 # TODO: Allow single array input?
 # TODO: Allow more control of plot parameters via args, kwargs
 # TODO: Get rid of pickle warning
-# TODO: Switch plotting when using n_comp = 3 (plot_polin())
 
 
 class GMM:

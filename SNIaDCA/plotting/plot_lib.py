@@ -32,7 +32,7 @@ _which_map = {
 }
 
 
-def _scatter(ax, X, Y, colors, markers, s=20, lw=0.6):
+def multi_scatter(ax, X, Y, colors, markers, s=20, edgecolor='k', lw=0.6):
     for x, y, c, m in zip(X, Y, colors, markers):
         ax.scatter(x, y, color=c, marker=m, s=s, edgecolor='k', linewidths=lw)
 
@@ -59,16 +59,20 @@ def gmm_legend(ax, n, *args, **kwargs):
     ax.legend(frameon=False, *args, **kwargs)
 
 
-def plot_polin(fig, ax, data, output, prob, contour=False, gmm=None):
-    if contour:
-        assert gmm is not None
+def plot_polin(fig, ax, gmm, contours=False):
+    if contours:
+        gmm_model = gmm.load_model()
+        draw_contours(ax, gmm_model, (0, 30), (-22, -16))
 
-    if contour:
-        draw_contours(ax, gmm, (0, 30), (-22, -16))
-
+    prob = gmm.predict()
     c = GMM_P_to_RGB(prob)
     m = GMM_P_to_MARKER(prob)
-    _scatter(ax, data['v6150'], data['mag'], c, m)
+    multi_scatter(ax, gmm.vsi, gmm.M_B, c, m)
+
+    if not contours:
+        ax.errorbar(gmm.vsi, gmm.M_B, xerr=gmm.vsi_err, yerr=gmm.M_B_err,
+                    fmt='none', ecolor='#4a4a4a', elinewidth=0.7, capthick=0.7,
+                    capsize=1.3, zorder=-1)
 
     ax.set_xlim(_ax_range['v'])
     ax.set_ylim(_ax_range['m'])
@@ -87,15 +91,16 @@ def plot_polin(fig, ax, data, output, prob, contour=False, gmm=None):
     return fig, ax
 
 
-def plot_branch(fig, ax, gmm, contours=False, gmm_model=None):
+def plot_branch(fig, ax, gmm, contours=False):
     if contours:
+        gmm_model = gmm.load_model()
         draw_contours(ax, gmm_model, (-30, 250), (-30, 130),
                       which=_which_map[gmm.model])
 
     prob = gmm.predict()
     c = GMM_P_to_RGB(prob)
     m = GMM_P_to_MARKER(prob)
-    _scatter(ax, gmm.pew_6355, gmm.pew_5972, c, m)
+    multi_scatter(ax, gmm.pew_6355, gmm.pew_5972, c, m)
 
     if not contours:
         ax.errorbar(gmm.pew_6355, gmm.pew_5972, xerr=gmm.pew_6355_err,
