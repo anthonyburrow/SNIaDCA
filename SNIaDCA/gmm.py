@@ -240,13 +240,10 @@ class GMM:
         fields = _model_dict[model]['fields']
         pin_data = pins[fields]
 
-        # sklearn.gmm can't take in structured arrays, so as a workaround...
-        try:
-            arr = pin_data.copy().view((float, len(fields)))
-            pin_prob = gmm.predict_proba(arr)
-        except ValueError:
-            arr = repack_fields(pin_data).view((float, len(fields)))
-            pin_prob = gmm.predict_proba(arr)
+        # sklearn.gmm can't take in structured arrays, so this converts
+        # to a normal unstructured array
+        arr = repack_fields(pin_data).view((float, len(fields)))
+        pin_prob = gmm.predict_proba(arr)
 
         ordered_indices = [np.argmax(p) for p in pin_prob]
 
