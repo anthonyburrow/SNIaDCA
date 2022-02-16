@@ -1,9 +1,11 @@
 import numpy as np
-import pickle
 from numpy.lib.recfunctions import repack_fields
+import pickle
 import os
 
 from .data.pins import branch_pins, polin_pins
+from .plotting.plot import generate_plot
+
 
 _sep = os.path.sep
 _model_path = os.path.join(os.path.dirname(__file__), f'models{_sep}')
@@ -29,6 +31,10 @@ _model_dict = {
 #       `_get_ordered_input()`, return specific views, so that numerous copies
 #       are not created.
 # TODO: Test np.float64 on the structured array workaround.
+# TODO: Allow single array input?
+# TODO: Allow more control of plot parameters via args, kwargs
+# TODO: Get rid of pickle warning
+# TODO: Switch plotting when using n_comp = 3 (plot_polin())
 
 
 class GMM:
@@ -46,11 +52,21 @@ class GMM:
         Si II 6355 velocity.
     """
 
-    def __init__(self, pew_5972=None, pew_6355=None, M_B=None, vsi=None):
-        self.pew_5972 = None if pew_5972 is None else np.asarray(pew_5972)
-        self.pew_6355 = None if pew_6355 is None else np.asarray(pew_6355)
-        self.M_B = None if M_B is None else np.asarray(M_B)
-        self.vsi = None if vsi is None else np.asarray(vsi)
+    def __init__(self, pew_5972=None, pew_5972_err=None, pew_6355=None,
+                 pew_6355_err=None, M_B=None, M_B_err=None, vsi=None,
+                 vsi_err=None, model=None):
+        self.pew_5972 = np.array(pew_5972) if pew_5972 is not None else None
+        self.pew_6355 = np.array(pew_6355) if pew_6355 is not None else None
+        self.M_B = np.array(M_B) if M_B is not None else None
+        self.vsi = np.array(vsi) if vsi is not None else None
+
+        self.pew_5972_err = np.array(pew_5972_err) if pew_5972_err is not None else None
+        self.pew_6355_err = np.array(pew_6355_err) if pew_6355_err is not None else None
+        self.M_B_err = np.array(M_B_err) if M_B_err is not None else None
+        self.vsi_err = np.array(vsi_err) if vsi_err is not None else None
+
+        self._model = model
+        self._n_components = None
 
     def predict(self, model=None):
         """Predict group membership at given points.
@@ -69,10 +85,12 @@ class GMM:
             If using an n=4 model, returns in the order CN, SS, BL, CL.
         """
         if model is None:
-            model = self._default_model()
+            model = self.model
+
+        print(f'Predicting with model {model}')
 
         # Predict at given data with a certain model and then reorder
-        gmm = self._load_model(model)
+        gmm = self.load_model(model)
         prob = self._predict(model, gmm)
         prob = self._reorder_prob(prob, model, gmm)
 
@@ -85,6 +103,33 @@ class GMM:
         name = arg_to_name[max_ind]
 
         return name, probability[max_ind]
+
+    def plot(self, *args, **kwargs):
+        return generate_plot(self, *args, **kwargs)
+
+    def load_model(self, model=None):
+        """Load the pickled GMM."""
+        if model is None:
+            model = self.model
+
+        fn = os.path.join(_model_path, f'{self.model}.p')
+        with open(fn, 'rb') as file:
+            gmm = pickle.load(file)
+        return gmm
+
+    @property
+    def model(self):
+        if self._model is None:
+            self._model = self._default_model()
+
+        return self._model
+
+    @property
+    def n_components(self):
+        if self._n_components is None:
+            self._n_components = _model_dict[self.model]['n_components']
+
+        return self._n_components
 
     def _default_model(self):
         """Detect which model to use based on given inputs.
@@ -116,15 +161,7 @@ class GMM:
         else:
             raise RuntimeError('Could not determine which model to use.')
 
-        print(f'Predicting with model {model}')
         return model
-
-    def _load_model(self, model):
-        """Load the pickled GMM."""
-        fn = os.path.join(_model_path, f'{model}.p')
-        with open(fn, 'rb') as file:
-            gmm = pickle.load(file)
-        return gmm
 
     def _predict(self, model, gmm):
         """Predict at input points using the given GMM object.
@@ -195,30 +232,29 @@ class GMM:
         prob : numpy.ndarray, shape (N, n_components)
             Unsorted probabilities output by GMM prediction.
         """
-        n_components = _model_dict[model]['n_components']
-        if n_components == 3:
+        if self.n_components == 3:
             pins = polin_pins
-        elif n_components == 4:
+        elif self.n_components == 4:
             pins = branch_pins
 
         fields = _model_dict[model]['fields']
         pin_data = pins[fields]
 
-        #  sklearn.gmm can't take in structured arrays, so as a workaround...
+        # sklearn.gmm can't take in structured arrays, so as a workaround...
         try:
-            arr = pin_data[fields].copy().view((float, len(fields)))
+            arr = pin_data.copy().view((float, len(fields)))
             pin_prob = gmm.predict_proba(arr)
         except ValueError:
-            arr = repack_fields(pin_data[fields]).view((float, len(fields)))
+            arr = repack_fields(pin_data).view((float, len(fields)))
             pin_prob = gmm.predict_proba(arr)
 
         ordered_indices = [np.argmax(p) for p in pin_prob]
 
         # Check for duplicates
-        if len(set(ordered_indices)) != n_components:
+        if len(set(ordered_indices)) != self.n_components:
             print(f'{model} probabilities were not reordered')
             return prob
 
-        prob[:, list(range(n_components))] = prob[:, ordered_indices]
+        prob[:, list(range(self.n_components))] = prob[:, ordered_indices]
 
         return prob
