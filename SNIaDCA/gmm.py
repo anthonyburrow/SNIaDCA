@@ -13,17 +13,17 @@ _model_path = os.path.join(os.path.dirname(__file__), f'models{_sep}')
 
 
 _model_dict = {
-    'p5_p6': {'fields': ['p6', 'p5'],
+    'p5_p6': {'fields': ['pew_6355', 'pew_5972'],
               'n_components': 4},
-    'v_p5_p6': {'fields': ['v', 'p5', 'p6'],
+    'v_p5_p6': {'fields': ['vsi', 'pew_5972', 'pew_6355'],
                 'n_components': 4},
-    'm_p5_p6': {'fields': ['m', 'p5', 'p6'],
+    'm_p5_p6': {'fields': ['M_B', 'pew_5972', 'pew_6355'],
                 'n_components': 4},
-    'm_v_p5_p6': {'fields': ['v', 'm', 'p6', 'p5'],
+    'm_v_p5_p6': {'fields': ['vsi', 'M_B', 'pew_6355', 'pew_5972'],
                   'n_components': 4},
-    'm_v': {'fields': ['v', 'm'],
+    'm_v': {'fields': ['vsi', 'M_B'],
             'n_components': 3},
-    'm_v_p5': {'fields': ['v', 'm', 'p5'],
+    'm_v_p5': {'fields': ['vsi', 'M_B', 'pew_5972'],
                'n_components': 3}
 }
 
@@ -32,9 +32,7 @@ _property_fields = ('M_B', 'M_B_err',
                     'pew_5972', 'pew_5972_err',
                     'pew_6355', 'pew_6355_err')
 
-# TODO: Setup single data attribute for all given properties, and in
-#       `_get_ordered_input()`, return specific views, so that numerous copies
-#       are not created.
+
 # TODO: Allow more control of plot parameters via args, kwargs
 
 
@@ -91,7 +89,7 @@ class GMM:
 
         # Predict at given data with a certain model and then reorder
         gmm = self.load_model(model)
-        prob = self._predict(model, gmm)
+        prob = self._predict(self._data, model, gmm)
         prob = self._reorder_prob(prob, model, gmm)
 
         return prob
@@ -174,7 +172,7 @@ class GMM:
 
         return model
 
-    def _predict(self, model, gmm):
+    def _predict(self, data, model, gmm):
         """Predict at input points using the given GMM object.
 
         Parameters
@@ -189,42 +187,22 @@ class GMM:
         prob : numpy.ndarray, shape (N, n_components)
             Unsorted probabilities output by GMM prediction.
         """
-        pred_data = self._get_ordered_input(model)
+        fields = _model_dict[model]['fields']
 
-        prob = gmm.predict_proba(pred_data)
+        # sklearn.gmm can't take in structured arrays, so this converts
+        # to a normal unstructured array
+        if isinstance(data, dict):
+            arr = np.zeros((len(data[fields[0]]), len(fields)))
+            for i, field in enumerate(fields):
+                arr[:, i] = data[field]
+        elif isinstance(data, np.ndarray):
+            arr = repack_fields(data[fields]).view((np.float64, len(fields)))
+        else:
+            print('Unable to convert data array to numpy.ndarray')
+
+        prob = gmm.predict_proba(arr)
 
         return prob
-
-    def _get_ordered_input(self, model):
-        """Get array suitable for input for the GMM objects.
-
-        This unfortunately must be done case-by-case because the GMM objects
-        were generated with different ordering of the parameters involved.
-
-        Parameters
-        ----------
-        model : str
-            Model used for prediction.
-
-        Returns
-        -------
-        pred_data : numpy.ndarray, shape (N, n_dims)
-            Ordered input data fit to pass into `gmm.predict_proba()`.
-        """
-        if model == 'm_v':
-            pred_data = np.array((self.vsi, self.M_B)).T
-        elif model == 'p5_p6':
-            pred_data = np.array((self.pew_6355, self.pew_5972)).T
-        elif model == 'm_v_p5':
-            pred_data = np.array((self.vsi, self.M_B, self.pew_5972)).T
-        elif model == 'v_p5_p6':
-            pred_data = np.array((self.vsi, self.pew_5972, self.pew_6355)).T
-        elif model == 'm_p5_p6':
-            pred_data = np.array((self.M_B, self.pew_5972, self.pew_6355)).T
-        elif model == 'm_v_p5_p6':
-            pred_data = np.array((self.vsi, self.M_B, self.pew_6355, self.pew_5972)).T
-
-        return pred_data
 
     def _reorder_prob(self, prob, model, gmm):
         """Reorder probabilities to have consistent output.
@@ -248,13 +226,7 @@ class GMM:
         elif self.n_components == 4:
             pins = branch_pins
 
-        fields = _model_dict[model]['fields']
-        pin_data = pins[fields]
-
-        # sklearn.gmm can't take in structured arrays, so this converts
-        # to a normal unstructured array
-        arr = repack_fields(pin_data).view((np.float64, len(fields)))
-        pin_prob = gmm.predict_proba(arr)
+        pin_prob = self._predict(pins, model, gmm)
 
         ordered_indices = [np.argmax(p) for p in pin_prob]
 

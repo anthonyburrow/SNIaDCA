@@ -1,8 +1,8 @@
 import numpy as np
 
 
-_dtype = [('m', np.float64), ('v', np.float64),
-          ('p5', np.float64), ('p6', np.float64)]
+_dtype = [('M_B', np.float64), ('vsi', np.float64),
+          ('pew_5972', np.float64), ('pew_6355', np.float64)]
 
 # Group order: core_normal, shallow_si, broad_line, cool
 branch_pins = np.array(
