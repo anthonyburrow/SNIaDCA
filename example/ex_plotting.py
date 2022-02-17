@@ -10,8 +10,10 @@ p6 = np.array([105, 62, 149, 125])
 model = GMM(pew_5972=p5, pew_6355=p6, M_B=m, vsi=v)
 # model = GMM(M_B=m, vsi=v)
 
-# Plot against data set used to generate GMMs
-fig, ax = model.plot(contours=False)
+# Plot against data set used to generate GMMs.
+# ax.scatter() keywords may be passed to change the properties of the
+# new point markers.
+fig, ax = model.plot(contours=False, marker='*', color='k')
 
 fn = './example_plot.pdf'
 fig.savefig(fn)

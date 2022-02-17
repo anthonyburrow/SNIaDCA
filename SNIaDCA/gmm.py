@@ -33,9 +33,6 @@ _property_fields = ('M_B', 'M_B_err',
                     'pew_6355', 'pew_6355_err')
 
 
-# TODO: Allow more control of plot parameters via args, kwargs
-
-
 class GMM:
     """GMM object used for group membership prediction.
 

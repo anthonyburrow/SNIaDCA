@@ -12,7 +12,7 @@ _sep = os.path.sep
 _data_path = os.path.join(os.path.dirname(__file__), f'..{_sep}data{_sep}')
 
 
-def generate_plot(gmm, contours=False):
+def generate_plot(gmm, contours=False, *args, **kwargs):
     print('Generating plot...')
 
     # Setup plot
@@ -34,6 +34,8 @@ def generate_plot(gmm, contours=False):
         'edgecolor': 'k',
         'lw': 0.8
     }
+    for key, prop in kwargs.items():
+        point_props[key] = prop
 
     if gmm.n_components == 4:
         fig, ax = plot_branch(fig, ax, source_gmm, contours=contours)
