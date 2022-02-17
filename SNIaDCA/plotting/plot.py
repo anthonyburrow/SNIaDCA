@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import os
 
 from .setup import setup_plot_params
-from .plot_lib import plot_branch, plot_polin, multi_scatter
-from .plot_color_mapping import GMM_P_to_RGB, GMM_P_to_MARKER
+from .plot_lib import plot_branch, plot_polin
+from .plot_color_mapping import GMM_P_to_RGB
 import SNIaDCA.gmm
 
 
