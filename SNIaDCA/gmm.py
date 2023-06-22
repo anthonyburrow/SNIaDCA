@@ -91,13 +91,19 @@ class GMM:
 
         return prob
 
-    def get_group_name(self, probability):
+    def get_group_name(self, probability=None):
         arg_to_name = ('Core-normal', 'Shallow-silicon', 'Broad-line', 'Cool')
+
+        if probability is None:
+            probability = self.predict()[0]
 
         max_ind = np.argmax(probability)
         name = arg_to_name[max_ind]
+        highest_prob = probability[max_ind]
 
-        return name, probability[max_ind]
+        print(f'{name}, {highest_prob * 100.:.2f}%')
+
+        return name, highest_prob
 
     def plot(self, *args, **kwargs):
         return generate_plot(self, *args, **kwargs)
