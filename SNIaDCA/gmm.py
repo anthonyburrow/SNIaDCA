@@ -91,8 +91,11 @@ class GMM:
 
         return prob
 
-    def get_group_name(self, probability=None):
-        arg_to_name = ('Core-normal', 'Shallow-silicon', 'Broad-line', 'Cool')
+    def get_group_name(self, probability=None, abbreviated=False):
+        if abbreviated:
+            arg_to_name = ('CN', 'SS', 'BL', 'CL')
+        else:
+            arg_to_name = ('Core-normal', 'Shallow-silicon', 'Broad-line', 'Cool')
 
         if probability is None:
             probability = self.predict()[0]
